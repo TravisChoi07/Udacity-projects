@@ -1,0 +1,514 @@
+ProsperLoanData 数据的探索分析——Udacity数据挖掘直通班 崔传敏——20190928
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# 加载你最终使用的所有组件
+# 注意，在这个代码块中，将参数 "echo" 设为假。
+# This prevents the code from displaying in the knitted HTML output.这可以避免代码混入 HTML 输出显示。
+# 应当在文件中，对所有代码块设为 echo=FALSE 。
+
+library(ggplot2)
+library(gridExtra)
+library(knitr)
+library(scales)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# 加载数据
+loan = read.csv('prosperLoanData.csv')
+```
+
+# 单变量绘图选择
+
+# 单变量分析
+
+### 你的数据集结构是什么？
+```{r echo=FALSE, Univariate_Plots}
+dim(loan)
+```
+
+### 你的数据集内感兴趣的主要特性有哪些？
+```{r echo=FALSE}
+str(subset(loan,select =c(BorrowerRate,ProsperScore,
+                          EstimatedLoss,AmountDelinquent,
+                          TotalProsperLoans,CreditGrade,
+                          ProsperRating..Alpha.)))
+```
+
+### 你认为数据集内哪些其他特征可以帮助你探索兴趣特点？
+```{r echo=FALSE}
+str(subset(loan,select= c(BorrowerState,Occupation,
+                          EmploymentStatus,IsBorrowerHomeowner,
+                          CurrentDelinquencies,BankcardUtilization,
+                          AvailableBankcardCredit,DebtToIncomeRatio,
+                          StatedMonthlyIncome)))
+```
+
+### 根据数据集内已有变量，你是否创建了任何新变量？
+答：数据较为丰富，暂未创建新变量。
+
+### 探索1：BorrowerRate的数值分布情况，绘制直方图观察。
+注：数据分布情况显示，BorrowerRate基本上呈正态分布。
+````{r echo=FALSE}
+ggplot(aes(x=BorrowerRate,fill=I('#009DD9'),color=I('black')),data=loan)+
+  geom_histogram(binwidth = 0.005)+
+  scale_x_continuous(limits = c(0,0.38),breaks = seq(0,0.35,0.05))+
+  scale_y_continuous(breaks = seq(0,5000,1000))+
+  theme_set(theme_minimal(12))
+```
+
+### 探索2：ProsperScore数值分布情况，绘制直方图观察。
+注：分布基本呈正态分布
+```{r echo=FALSE}
+ggplot(aes(x=ProsperScore,fill=I('lightblue1'),color=I('black')),data=loan)+
+  geom_histogram(binwidth = 1)+
+  scale_x_continuous(limits = c(0,11),breaks = seq(0,11,1))+
+  scale_y_continuous(breaks = seq(0,12500,2500))+
+  theme_set(theme_minimal(12))
+
+```
+
+### 探索3：TotalProsperLoans数值分布情况，绘制直方图观察。
+注：通过数值分布图的观察，发现绝大多数贷款额度都在1左右，高额度的贷款逐级减少
+```{r echo=FALSE}
+p1 = ggplot(aes(x=TotalProsperLoans,fill=I('chartreuse3'),color=I('black')),
+            data=loan)+
+  geom_histogram(binwidth = 1)+
+  scale_x_continuous(breaks = seq(0,8,1))+
+  theme_set(theme_minimal(12))
+  
+
+p2 = ggplot(aes(x=TotalProsperLoans,fill=I('chartreuse3'),color=I('black')),
+            data=loan)+
+  geom_histogram(binwidth = 1)+
+  scale_x_continuous(breaks = seq(0,8,1))+
+  scale_y_continuous(trans=log10_trans(),breaks = c(10,50,200,1000,5000,15000))+
+  ggtitle('count_log10')+
+  theme_set(theme_minimal(12))
+
+grid.arrange(p1,p2,ncol=1)
+```
+
+### 探索4：AmountDelinquent数值分布情况，绘制直方图观察。
+注：分布显示，绝大多数违约金额低于100000元，极少数违约金额高于200000元，最高违约金额约为450000元。
+
+```{r echo=FALSE}
+p3= ggplot(aes(x=AmountDelinquent,fill=I('red3'),color=I('black')),data=
+             subset(loan,AmountDelinquent > 0))+geom_histogram()+
+  theme_set(theme_minimal(12))
+
+
+p4 = ggplot(aes(x=AmountDelinquent/(10^5),fill=I('red3'),color=I('black')),data=
+              subset(loan,AmountDelinquent > 0))+
+  geom_histogram(binwidth = 0.1)+
+  scale_y_continuous(trans = log10_trans(),breaks = c(1,10,100,1000,10000))+
+  ggtitle('count_log10')+
+  theme_set(theme_minimal(12))
+
+
+grid.arrange(p3,p4,ncol=1)
+```
+
+
+注：从未违约的人占绝大多数，比例89818/113837=78.8%
+
+```{r echo=FALSE}
+table(subset(loan,AmountDelinquent == 0)$AmountDelinquent)
+```
+
+注：违约金额平均为6345元，最低1元，最高463881元。
+```{r echo=FALSE}
+summary(subset(loan,AmountDelinquent > 0)$AmountDelinquent)
+```
+
+### 探索5：DebtToIncomeRatio数值分布情况，绘制直方图观察。
+注：DebtToIncomeRatio趋于正态分布，在0.2左右最大，绝大多数低于0.5
+
+```{r echo=FALSE}
+ggplot(aes(x=DebtToIncomeRatio,fill=I('springgreen3'),color=I('black')),
+       data=loan)+
+  geom_histogram(binwidth = 0.02)+
+  scale_x_continuous(limits = c(0,1))+
+  theme_set(theme_minimal(12))
+
+```
+
+### 探索6：StatedMonthlyIncome数值分布情况，绘制直方图观察。
+注：固定月收入水平趋于正态分布，数值在3500左右最大，绝大多数位于10000以下
+
+```{r echo=FALSE}
+ggplot(aes(x=StatedMonthlyIncome,fill=I('springgreen3'),color=I('black')),
+       data=loan)+
+  geom_histogram(binwidth = 500)+
+  scale_x_continuous(limits = c(0,30000),breaks = seq(0,30000,2000))+
+  theme_set(theme_minimal(12))
+
+```
+
+### 探索7：CreditGrade数值分布情况，绘制直方图观察。
+注：大致呈正态分布，信用等级居中的情况（B、C、D）最多，其他等级的数量基本相当，NC等级最少
+
+```{r echo=FALSE}
+
+ggplot(aes(x=CreditGrade,fill=I('orange1'),color=I('black')),data=
+         subset(loan,CreditGrade!=''))+stat_count()+
+  theme_set(theme_minimal(12))
+```
+
+### 在已经探究的特性中，是否存在任何异常分布？你是否对数据进行一些操作，如清洁、调整或改变数据的形式？如果是，你为什么会这样做？
+尚未发现异常分布，也未对原始数据进行更改，但在部分制图中，为了呈现便于观察和分析的图片，将坐标系的范围和刻度进行了调整或者转换。
+
+# 双变量绘图选择
+
+# 双变量分析
+
+## 探索1:BorrowerRate与ProsperScore之间的关系
+注：绘图发现，二者呈一定比例关系，为较强的负相关，相关系数为-0.65
+```{r echo=FALSE}
+ggplot(aes(x=ProsperScore,y=BorrowerRate),data=loan)+
+  geom_jitter(alpha=0.1)+
+  scale_x_continuous(breaks = seq(0,11,1))+
+  scale_y_continuous(limits = c(0,0.4))+
+  geom_smooth(method = 'lm',color='red')+
+  theme_set(theme_minimal(12))
+
+```
+```{r}
+cor.test(loan$ProsperScore,loan$BorrowerRate)
+```
+
+## 探索2:TotalProsperLoans与IncomeRange之间的关系
+注：此图效果不明显，隐约发现收入越高，贷款额越有偏高的分布情况。
+```{r echo=FALSE}
+
+loan$IncomeRange <- factor(loan$IncomeRange, 
+                              levels = c('$100,000+',
+                           '$75,000-99,999',
+                          '$50,000-74,999',
+                          '$25,000-49,999',
+                          '$1-24,999',
+                          '$0',
+                          'Not employed'), ordered = TRUE)
+
+ggplot(aes(x=TotalProsperLoans,y=IncomeRange),
+       data=subset(loan,IncomeRange!='Not displayed'))+
+  geom_jitter(alpha=0.1)+
+  scale_x_continuous(limits = c(0,7))+
+  theme_set(theme_minimal(12))
+```
+
+## 探索3:TotalProsperLoans与BorrowerState之间的关系
+注：探究不同国别的人贷款的分布情况，通过观察可以发现，部分国家如CA、FL、GA具有较高的贷款额，而IN、NJ、AL等国别具有较低的贷款额
+
+```{r echo=FALSE}
+ggplot(aes(x=TotalProsperLoans,y=BorrowerState),data=loan)+
+  geom_point(alpha=0.2,position = position_jitter(h=0))+
+  theme_set(theme_minimal(8))
+  
+```
+
+
+## 探索4:TotalProsperLoans与DebtToIncomeRatio之间的关系
+注：本图效果不理想，但仍隐约可以看出，债务收入比越高，其期望的贷款额度趋于越低。
+```{r echo=FALSE}
+ggplot(aes(x=DebtToIncomeRatio,y=TotalProsperLoans),data=loan)+
+  geom_jitter(alpha=0.2)+
+  scale_x_continuous(limits = c(0,1.5))+
+  theme_set(theme_minimal(12))
+```
+
+## 探索5:CreditGrade_total与BorrowerRate之间的关系
+注：去掉无信用等级的数据，通过箱线图可以大致比较出不同信用等级对应的贷款利率情况为：AA<A<B<C<D<E<HR
+```{r echo=FALSE}
+
+loan$CreditGrade <- factor(loan$CreditGrade, 
+                              levels = c('AA',
+                           'A',
+                          'B',
+                          'C',
+                          'D',
+                          'E',
+                          'HR',
+                          'HC'), ordered = TRUE)
+
+ggplot(aes(x=CreditGrade,y=BorrowerRate),data=subset(loan,CreditGrade != ''))+
+  geom_boxplot()+
+  scale_y_continuous(limits = c(0,0.45))+
+  theme_set(theme_minimal(12))
+```
+
+## 探索6:CurrentDelinquencies与AmountDelinquent之间的关系
+注：从散点图分布上看，二者无明显的线性关系，待进一步计算相关系数验证。
+```{r echo=FALSE}
+
+p1 = ggplot(aes(x=CurrentDelinquencies,y=AmountDelinquent/(10^5)),
+            data=subset(loan,CreditGrade != ''))+
+  geom_jitter(alpha=0.3)+
+  scale_x_continuous(limits = c(0,25))+
+  scale_y_continuous(limits = c(0,0.75))+
+  theme_set(theme_minimal(12))
+
+p2 = ggplot(aes(x=CurrentDelinquencies,y=AmountDelinquent/(10^5)),
+            data=subset(loan,CreditGrade != ''))+
+  geom_jitter(alpha=0.2)+
+  scale_x_continuous(limits = c(0,15))+
+  scale_y_continuous(trans=log10_trans())+
+  ggtitle('log10_trans')+
+  theme_set(theme_minimal(12))
+
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+### 计算CurrentDelinquencies与AmountDelinquent之间的相关性
+注：相关系数0.34，二者之间有较弱的正相关。
+```{r}
+cor.test(loan$CurrentDelinquencies,loan$AmountDelinquent)
+```
+
+## 探索7:IncomeRange与Occupation之间的关系
+注：从散点图分布上看，某些职业收入偏高，如：teacher,professional，某些职业收入普遍偏低,如doctor,attorney，某些职业的收入集中在中等水平，如：social worker、laborer
+
+```{r echo=FALSE}
+ggplot(aes(x=IncomeRange,y=Occupation),data=subset(loan,!is.na(IncomeRange)))+
+  geom_point(alpha=0.05,position = position_jitter(h=0))+theme_set(theme_minimal(6))+
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+```
+
+## 探索8:BankcardUtilization与BorrowerRate之间的关系
+注：通过散点分布图可以看出，信用卡活跃比例BankcardUtilization存在超过1的异常值。且存在非常多不用信用卡的人，倘若去除异常值和不用信用卡的人对应的数据，剩下用信用卡的人贷款利息便与信用卡活跃度比例正相关，呈一定的线性关系。由此可以推测，信用卡活跃度比例高的人，多可能为现金较少，习惯透支信用卡消费的群体，为较高风险的群体，所以其借款便会有相对高的利息。
+
+```{r echo=FALSE}
+p1 = ggplot(aes(x=BankcardUtilization,y=BorrowerRate),data=loan)+
+  geom_jitter(alpha=0.03)+
+  scale_x_continuous(limits = c(0,1.25))+
+  scale_y_continuous(limits = c(0,0.4))+
+  theme_set(theme_minimal(12))
+
+p2 = ggplot(aes(x=BankcardUtilization,y=BorrowerRate),data=
+              subset(loan,BankcardUtilization!=0 & BankcardUtilization<=1))+
+  geom_jitter(alpha=0.03)+
+  scale_x_continuous(limits = c(0,1.25))+
+  scale_y_continuous(limits = c(0,0.4))+
+  geom_smooth(method = 'lm',color='blue',linetype=2)+
+  theme_set(theme_minimal(12))
+
+grid.arrange(p1,p2,ncol=1)
+```
+
+# 多变量分析
+
+
+## 探索1:CurrentDelinquencies与AmountDelinquent,CreditGrade之间的关系
+注：从散点图分布上看，不同的CreditGrade确实与历史违约情况挂钩，按照分布可以看出，违约情况较轻的人，信用等级普遍偏高，即评级多为A,AA,B,C，而违约情况较严重的，尤其违约次数较多的，其信用等级普遍偏低，评级多为D,E,HR
+```{r echo=FALSE}
+ggplot(aes(x=CurrentDelinquencies,y=AmountDelinquent/(10^5),color=CreditGrade),
+       data=subset(loan,CreditGrade != ''))+
+  geom_jitter(alpha=0.5)+
+  scale_x_continuous(limits = c(0,25))+
+  scale_y_continuous(trans=log10_trans())+
+  ggtitle('log10_trans')+
+  theme_set(theme_minimal(12))
+```
+
+## 探索2::TotalProsperLoans与DebtToIncomeRatio,EmploymentStatus之间的关系
+注：本图效果不理想，主要因为Employed状态的数据占大多数，覆盖情况严重。
+```{r echo=FALSE}
+data_employ =subset(loan,EmploymentStatus!=''& EmploymentStatus!='Not available')
+
+ggplot(aes(x=DebtToIncomeRatio,y=TotalProsperLoans,color=EmploymentStatus),
+       data=data_employ)+
+  geom_jitter(alpha=0.2)+
+  scale_x_continuous(limits = c(0,1.5))+
+  theme_set(theme_minimal(12))
+```
+
+## 探索3:TotalProsperLoans与IncomeRange,IsBorrowerHomeowner之间的关系
+注：此图效果不理想，隐约发现收入越高，贷款额越偏高，但贷款人是否为业主，与贷款总额和收入水平之间，无明显关系。
+```{r echo=FALSE}
+ggplot(aes(x=TotalProsperLoans,y=IncomeRange),
+       data=subset(loan,IncomeRange!='Not displayed'))+
+  geom_jitter(alpha=0.1)+
+  scale_x_continuous(limits = c(0,7))+
+  facet_wrap(~IsBorrowerHomeowner)+
+  theme_set(theme_minimal(12))
+```
+
+
+## 探索4:BankcardUtilization与BorrowerRate,CreditGrade之间的关系
+注：去除异常值和不用信用卡的人对应的数据，根据信用等级CreditGrade分面。
+从绘图结果观察看，信用卡活跃比例较低，信用等级为AA和A的群体，其借款利率普遍偏低；信用卡活跃比例较高，信用等级为C,D,E和HR的群体，其借款利率普遍偏高。
+据此情况推测：习惯透支信用卡消费的群体，为较高风险的群体，所以其借款便会有相对高的利息。
+
+```{r echo=FALSE}
+data_bku = subset(loan,BankcardUtilization!=0 & BankcardUtilization<=1)
+
+ggplot(aes(x=BankcardUtilization,y=BorrowerRate),
+       data=subset(data_bku,CreditGrade!=''))+
+  geom_jitter(alpha=0.1)+
+  scale_x_continuous(limits = c(0,1.25))+
+  scale_y_continuous(limits = c(0,0.4))+
+  facet_wrap(~CreditGrade)+
+  theme_set(theme_minimal(12))+
+  ggtitle('')
+```
+
+## 探索5:变量ProsperScore，BorrowerRate,IncomeRange之间的关系
+注：本图原本为之间画散点图，重叠情况严重，不利于观察，即使抽取1000个样本也不太明显。后仅取各节点对应的数据分组的median，进而呈现出较为清晰的层次感。
+
+```{r echo=FALSE}
+# 探索3:变量ProsperScore，BorrowerRate,IncomeRange之间的关系
+
+loan_select0 = loan[loan$IncomeRange != 'Not displayed',]
+loan_select = subset(loan_select0,!is.na(IncomeRange))
+ggtitle('Scatter points for ProsperScore/BorrowerRate/IncomeRange')
+
+p1 = ggplot(aes(x=ProsperScore,y=BorrowerRate,color=IncomeRange),
+            data=loan_select)+
+  geom_jitter(alpha=0.5)+
+  scale_x_continuous(breaks = seq(0,11,1))+
+  scale_y_continuous(limits = c(0,0.4))+
+  theme_set(theme_minimal(12))+
+  scale_color_brewer(type='qual', direction = -1) +
+  theme_dark()+
+  ggtitle('all_data')
+
+p2 = ggplot(aes(x=ProsperScore,y=BorrowerRate,color=IncomeRange),
+            data=loan_select[sample.int(1000),])+
+  geom_jitter(alpha=0.5)+
+  scale_x_continuous(breaks = seq(0,11,1))+
+  scale_y_continuous(limits = c(0,0.4))+
+  theme_set(theme_minimal(12))+
+  scale_color_brewer(type='qual', direction = -1) +
+  theme_dark()+
+  ggtitle('1000sample_data')
+
+p3 = ggplot(aes(x=ProsperScore,y=BorrowerRate,color=IncomeRange),
+            data=loan_select)+
+  geom_point(alpha=1,stat = 'summary',fun.y=median)+
+  scale_x_continuous(breaks = seq(0,11,1))+
+  scale_y_continuous(limits = c(0,0.4))+
+  theme_set(theme_minimal(12))+
+  scale_color_brewer(type='qual', direction = -1)+
+  theme_dark()+
+  ggtitle('median_data')
+
+grid.arrange(p1,p2,p3,ncol=2)
+```
+
+
+###  探讨你在这部分探究中观察到的一些关系。通过观察感兴趣的特性，是否存在相互促进的特性？
+答：通过观察贷款利率、贷款额、信用评级、收入水平等特性之间的关系，发现存在具有相互促进的特性。
+
+### 这些特性之间是否存在有趣或惊人的联系呢？
+答：存在，比如收入水平与贷款利率之间存在联系，收入水平越高，贷款利率趋于越低。
+
+### 选项：你是否创建过数据集的任何模型？讨论你模型的优缺点。
+答：未创建任何模型
+
+------
+
+# 定稿图与总结
+
+### 绘图一
+```{r echo=FALSE, Plot_One}
+### 探索1：BorrowerRate的数值分布情况，绘制直方图观察。
+
+ggplot(aes(x=BorrowerRate,fill=I('#009DD9'),color=I('black')),data=loan)+
+  geom_histogram(binwidth = 0.005)+
+  scale_x_continuous(limits = c(0,0.38),breaks = seq(0,0.35,0.05))+
+  scale_y_continuous(breaks = seq(0,5000,1000))+
+  theme_set(theme_minimal(12))+
+  xlab('BorrowerRate(/year)')+
+  ggtitle('BorrowerRate distribution')
+```
+
+### 描述一
+数据分布情况显示，BorrowerRate基本上呈正态分布，其大多数数据落在0.05-0.35之间，其中在0.32处有大量数量集中，推测0.32或为常规贷款利息率。
+
+### 绘图二
+```{r echo=FALSE, Plot_Two}
+# 探索:ProsperScore与BorrowerRate之间的关系
+p1 = ggplot(aes(x=ProsperScore,y=BorrowerRate),data=loan)+
+  geom_jitter(alpha=0.1)+
+  scale_x_continuous(breaks = seq(0,11,1))+
+  scale_y_continuous(limits = c(0,0.4))+
+  geom_smooth(method = 'lm',color='red')+
+  theme_set(theme_minimal(12))+
+  ylab('BorrowerRate(/year)')
+
+p2 = ggplot(aes(x=ProsperScore,y=BorrowerRate),data=loan)+
+  geom_point(stat = 'summary',fun.y=median)+
+  scale_x_continuous(breaks = seq(0,11,1))+
+  scale_y_continuous(limits = c(0,0.4))+
+  geom_smooth(method = 'lm',color='red')+
+  ggtitle('median_BorrowerRate')+
+  theme_set(theme_minimal(12))+
+  ylab('BorrowerRate(/year)')
+
+grid.arrange(p1,p2,ncol=1)
+```
+
+### 描述二
+通过ProsperScore与BorrowerRate之间的关系散点图，发现两者呈负相关，即随着ProsperScore的升高，贷款利息BorrowerRate有逐渐降低的趋势。
+进一步取各BorrowerRate的中位数画图，发现其负相关特征更为明显。
+由于ProsperScore表示借款者的风险分等级，从上图可以推测，风险分越高，表示借款人的综合评估越优质，还款违约的可能性越小，所以其借款的利息越低。
+
+
+### 绘图三
+```{r echo=FALSE, Plot_Three}
+# 探索3:变量ProsperScore，BorrowerRate,IncomeRange之间的关系
+
+loan_select0 = loan[loan$IncomeRange != 'Not displayed',]
+loan_select = subset(loan_select0,!is.na(IncomeRange))
+
+p1 = ggplot(aes(x=ProsperScore,y=BorrowerRate,color=IncomeRange),
+            data=loan_select)+
+  geom_jitter(alpha=0.5)+
+  scale_x_continuous(breaks = seq(0,11,1))+
+  scale_y_continuous(limits = c(0,0.4))+
+  theme_set(theme_minimal(12))+
+  scale_color_brewer(type='qual', direction = -1) +
+  theme_dark()+
+  ggtitle('all_data')
+
+p2 = ggplot(aes(x=ProsperScore,y=BorrowerRate,color=IncomeRange),
+            data=loan_select[sample.int(1000),])+
+  geom_jitter(alpha=0.5)+
+  scale_x_continuous(breaks = seq(0,11,1))+
+  scale_y_continuous(limits = c(0,0.4))+
+  theme_set(theme_minimal(12))+
+  scale_color_brewer(type='qual', direction = -1) +
+  theme_dark()+
+  ggtitle('1000sample_data')
+
+p3 = ggplot(aes(x=ProsperScore,y=BorrowerRate,color=IncomeRange),
+            data=loan_select)+
+  geom_point(alpha=1,stat = 'summary',fun.y=median)+
+  scale_x_continuous(breaks = seq(0,11,1))+
+  scale_y_continuous(limits = c(0,0.4))+
+  theme_set(theme_minimal(12))+
+  scale_color_brewer(type='qual', direction = -1)+
+  theme_dark()+
+  ggtitle('median_data')
+
+
+grid.arrange(p1,p2,p3,ncol=2)
+```
+
+### 描述三
+本图首先去掉了Not displayed的数据，并最初为3个变量之间画散点图，发现重叠情况严重，不利于观察分析。
+之后抽取1000个数据样本画散点图，发现效果仍不理想。
+为了获得各后仅取各IncomeRange的总体统计数据比较，将3个变量画箱线图。并且对各IncomeRange数据节点对应的median画散点图，便于综合比较。
+
+通过观察分析，可以得出以下结论：
+1，风险值ProsperScore越高，则贷款利息趋于越低；
+2，总体趋势上，收入等级IncomeRange越高，贷款利息越趋于较低水平，相反，若收入为0或者未就业，则贷款利息趋于最高。
+
+------
+
+# 反思
+1，在本数据探索分析中，基本没有被某些难点长时间卡住，仅在绘制多变量分析图时，经过了较长时间的绘图过程，才绘制出几个较为显著且有分析意义的图片。此外，在某些细节上，也略微花费了一些时间，比如在颜色的选择上、坐标尺度的调整上、字体大小的调整上、knit-HTML文件导出等，不过这些都已经通过查询bing、CSDN等学习网站，一一加以解决。
+2，本项目在了解完各个变量的含义之后，便开始提出问题，其中一个比较感兴趣的问题就是，会有哪些因素影响到贷款的利息高低。通过本项目的分析，最终成功的找到了显著影响利息高低的2个因素：ProsperScore和IncomeRange，且成功将3者进行绘图和分析。
+3，本项目仅考察了部分变量，得出的结论仅可作为初步参考，且存在的部分猜测和推理，并未进行严格的逻辑证明。此外，针对某些感兴趣的问题，应该还有更好的答案，比如影响贷款利息高低的因素应该不仅限于本项目中分析的2个因素，还应该有其他因素对其影响，后期若能进一步挖掘其他变量的影响作用，应该可以建立起具有优良预测功能的模型。
