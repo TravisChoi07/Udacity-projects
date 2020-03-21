@@ -1,0 +1,2 @@
+1，在应用statsmodels.stats.proportion.proportions_ztest方法时，参考了网址：
+http://www.statsmodels.org/stable/generated/statsmodels.stats.proportion.proportions_ztest.html#statsmodels.stats.proportion.proportions_ztest
